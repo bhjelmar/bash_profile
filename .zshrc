@@ -1,70 +1,142 @@
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+echo "
+                       .8                          
+                     .888
+                   .8888'
+                  .8888'
+                  888'
+                  8'
+     .88888888888. .88888888888.
+  .8888888888888888888888888888888.
+.8888888888888888888888888888888888.
+.&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&'
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&'
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:       `whoami`@`hostname`
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.
+\`%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.
+\`00000000000000000000000000000000000'
+ \`000000000000000000000000000000000'
+  \`0000000000000000000000000000000'
+    \`###########################'
+      \`#######################'
+        \`#########''########'
+          \`\"\"\"\"\"\"'  \`\"\"\"\"\"'" | lolcat
 
-# Path to your oh-my-zsh installation.
+# neofetch
+
+prompt_zsh_battery_level() {
+  local percentage1=`pmset -g ps  |  sed -n 's/.*[[:blank:]]+*\(.*%\).*/\1/p'`
+  local percentage=`echo "${percentage1//\%}"`
+  local color='%F{red}'
+  local symbol="\uf00d"
+  pmset -g ps | grep "discharging" > /dev/null
+  if [ $? -eq 0 ]; then
+    if [ $percentage -le 20 ]; then
+      symbol='\uf579'
+      color='%F{red}'
+    elif [ $percentage -gt 19 ] && [ $percentage -le 30 ]; then
+      symbol="\uf57a"
+      color='%F{red}'
+    elif [ $percentage -gt 29 ] && [ $percentage -le 40 ]; then
+      symbol="\uf57b"
+      color='%F{yellow}'
+    elif [ $percentage -gt 39 ] && [ $percentage -le 50 ]; then
+      symbol="\uf57c"
+      color='%F{yellow}'
+    elif [ $percentage -gt 49 ] && [ $percentage -le 60 ]; then
+      symbol="\uf57d"
+      color='%F{blue}'
+    elif [ $percentage -gt 59 ] && [ $percentage -le 70 ]; then
+      symbol="\uf57e"
+      color='%F{blue}'
+    elif [ $percentage -gt 69 ] && [ $percentage -le 80 ]; then
+      symbol="\uf57f"
+      color='%F{blue}'
+    elif [ $percentage -gt 79 ] && [ $percentage -le 90 ]; then
+      symbol="\uf580"
+      color='%F{blue}'
+    elif [ $percentage -gt 89 ] && [ $percentage -le 99 ]; then
+      symbol="\uf581"
+      color='%F{blue}'
+    elif [ $percentage -gt 98 ]; then
+      symbol="\uf578"
+      color='%F{green}'
+    fi
+  else
+    local color='%F{green}'; 
+    symbol='\uf584'
+  fi
+  echo -n "%{$color%}$symbol $percentage"
+}
+
+zsh_wifi_signal(){
+  local color='%F{yellow}'
+  local symbol='\ufaa8'
+  if [[ $(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I) == "AirPort: Off" ]]; then
+    color='%F{red}'
+    echo -n "%{$color%}\ufaa9 %{%f%}"
+  else
+    local signal=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | grep CtlRSSI | awk '{print $2}')
+    [[ $signal -gt -60 ]] && color='%F{green}'
+    [[ $signal -lt -70 ]] && color='%F{red}'
+    echo -n "%{$color%}$symbol"
+  fi
+}
+
+airpods_battery() {
+  local bluetooth_defaults=$(defaults read /Library/Preferences/com.apple.Bluetooth)
+  local system_profiler=$(system_profiler SPBluetoothDataType)
+  local mac_addr=$(grep -b2 "Minor Type: Headphones"<<<"${system_profiler}" | awk '/Address/{print $3}')
+  local connected=$(grep -ia6 "${mac_addr}"<<<"${system_profiler}" | awk '/Connected: Yes/{print 1}')
+  local bluetooth_data=$(grep -ia6 '"'"${mac_addr}"'"'<<<"${bluetooth_defaults}")
+  local battery_levels=("BatteryPercentLeft" "BatteryPercentRight")
+  local color='%F{green}'
+  local symbol='\uf7cc'
+  if [[ "${connected}" ]]; then 
+    local lowest_percentage=100
+    for I in "${battery_levels[@]}"; do 
+      local percentage=`awk -v pat="${I}" '$0~pat{gsub (";",""); print $3 }'<<<"${bluetooth_data}"`
+      if [[ ${percentage} -lt ${lowest_percentage} ]]; then
+        lowest_percentage=${percentage}
+      fi
+      if [[ ${percentage} -lt 20 ]]; then
+        color='%F{red}'
+      elif [[ ${percentage} -lt 50 ]]; then
+        color='%F{yellow}'
+      fi
+    done;
+    echo -n "%{$color%}$symbol $lowest_percentage"
+  fi
+}
+
+trackpad_battery() {
+  local bluetooth_defaults=$(defaults read /Library/Preferences/com.apple.Bluetooth)
+  local system_profiler=$(system_profiler SPBluetoothDataType)
+  local mac_addr=$(grep -b2 "Minor Type: Trackpad"<<<"${system_profiler}" | awk '/Address/{print $3}')
+  local connected=$(grep -ia6 "${mac_addr}"<<<"${system_profiler}" | awk '/Connected: Yes/{print 1}')
+  local color='%F{green}'
+  local symbol='\ufcf6'
+  if [[ "${connected}" ]]; then 
+    local percentage=$(grep -b8 "Minor Type: Trackpad"<<<"${system_profiler}" | awk '/Battery/{print $4}' | rev | cut -c2- | rev)
+    if [[ ${percentage} -lt 20 ]]; then
+      color='%F{red}'
+    elif [[ ${percentage} -lt 50 ]]; then
+      color='%F{yellow}'
+    fi
+    echo -n "%{$color%}$symbol $percentage"
+  fi;
+}
+
 export ZSH=/Users/bradley.hjelmar/.oh-my-zsh
-
-# Set name of the theme to load. Optionally, if you set this to "random"
-# it'll load a random theme each time that oh-my-zsh is loaded.
-# See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
-# ZSH_THEME="avit"
-
-# Set list of themes to load
-# Setting this variable when ZSH_THEME=random
-# cause zsh load theme from this variable instead of
-# looking in ~/.oh-my-zsh/themes/
-# An empty array have no effect
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion. Case
-# sensitive completion must be off. _ and - will be interchangeable.
 HYPHEN_INSENSITIVE="true"
-
-# Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
-
-# Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# The optional three formats: "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
-# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-# plugins=(git osx colored-man-pages)
-
 export DEFAULT_USER='bradley.hjelmar'
 TERM=xterm-256color
 ZSH_THEME="powerlevel9k/powerlevel9k"
+POWERLEVEL9K_MODE='nerdfont-complete'
 
-POWERLEVEL9K_MODE='awesome-fontconfig'
 POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
 POWERLEVEL9K_RPROMPT_ON_NEWLINE=true
@@ -75,7 +147,7 @@ POWERLEVEL9K_RVM_FOREGROUND="249"
 POWERLEVEL9K_RVM_VISUAL_IDENTIFIER_COLOR="red"
 POWERLEVEL9K_TIME_BACKGROUND="black"
 POWERLEVEL9K_TIME_FOREGROUND="249"
-POWERLEVEL9K_TIME_FORMAT="\UF43A %D{%H:%M  \UF133  %d.%m.%y}"
+POWERLEVEL9K_TIME_FORMAT="\UF43A %D{%I:%M  \UF133  %m.%d.%y}"
 POWERLEVEL9K_RVM_BACKGROUND="black"
 POWERLEVEL9K_RVM_FOREGROUND="249"
 POWERLEVEL9K_RVM_VISUAL_IDENTIFIER_COLOR="red"
@@ -97,113 +169,16 @@ POWERLEVEL9K_VCS_UNSTAGED_ICON='\u00b1'
 POWERLEVEL9K_VCS_INCOMING_CHANGES_ICON='\u2193'
 POWERLEVEL9K_VCS_OUTGOING_CHANGES_ICON='\u2191'
 POWERLEVEL9K_VCS_COMMIT_ICON="\uf417"
-POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX="%F{blue}\u256D\u2500%F{white}"
-POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="%F{blue}\u2570\uf460%F{white} "
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context os_icon ssh root_indicator dir vcs)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time  status rvm time)
+POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX="%F{blue}\u256D\u2500%f"
+POWERLEVEL9K_MULTILINE_LAST_PROMPT_PREFIX="%F{blue}\u2570\uf460%f "
+POWERLEVEL9K_CUSTOM_BATTERY_STATUS="prompt_zsh_battery_level"
+POWERLEVEL9K_CUSTOM_WIFI_SIGNAL="zsh_wifi_signal"
+POWERLEVEL9K_CUSTOM_AIRPODS_BATTERY='airpods_battery'
+POWERLEVEL9K_CUSTOM_TRACKPAD_BATTERY='trackpad_battery'
 
-# POWERLEVEL9K_MODE='nerdfont-complete'
-
-# # Please only use this battery segment if you have material icons in your nerd font (or font)
-# # Otherwise, use the font awesome one in "User Segments"
-# prompt_zsh_battery_level() {
-#   local percentage1=`pmset -g ps  |  sed -n 's/.*[[:blank:]]+*\(.*%\).*/\1/p'`
-#   local percentage=`echo "${percentage1//\%}"`
-#   local color='%F{red}'
-#   local symbol="\uf00d"
-#   pmset -g ps | grep "discharging" > /dev/null
-#   if [ $? -eq 0 ]; then
-#     local charging="false";
-#   else
-#     local charging="true";
-#   fi
-#   if [ $percentage -le 20 ]
-#   then symbol='\uf579' ; color='%F{red}' ;
-#     #10%
-#   elif [ $percentage -gt 19 ] && [ $percentage -le 30 ]
-#   then symbol="\uf57a" ; color='%F{red}' ;
-#     #20%
-#   elif [ $percentage -gt 29 ] && [ $percentage -le 40 ]
-#   then symbol="\uf57b" ; color='%F{yellow}' ;
-#     #35%
-#   elif [ $percentage -gt 39 ] && [ $percentage -le 50 ]
-#   then symbol="\uf57c" ; color='%F{yellow}' ;
-#     #45%
-#   elif [ $percentage -gt 49 ] && [ $percentage -le 60 ]
-#   then symbol="\uf57d" ; color='%F{blue}' ;
-#     #55%
-#   elif [ $percentage -gt 59 ] && [ $percentage -le 70 ]
-#   then symbol="\uf57e" ; color='%F{blue}' ;
-#     #65%
-#   elif [ $percentage -gt 69 ] && [ $percentage -le 80 ]
-#   then symbol="\uf57f" ; color='%F{blue}' ;
-#     #75%
-#   elif [ $percentage -gt 79 ] && [ $percentage -le 90 ]
-#   then symbol="\uf580" ; color='%F{blue}' ;
-#     #85%
-#   elif [ $percentage -gt 89 ] && [ $percentage -le 99 ]
-#   then symbol="\uf581" ; color='%F{blue}' ;
-#     #85%
-#   elif [ $percentage -gt 98 ]
-#   then symbol="\uf578" ; color='%F{green}' ;
-#     #100%
-#   fi
-#   if [ $charging = "true" ];
-#   then color='%F{green}'; if [ $percentage -gt 98 ]; then symbol='\uf584'; fi
-#   fi
-#   echo -n "%{$color%}$symbol" ;
-# }
-
-# zsh_internet_signal(){
-#   local color
-#   local symbol="\uf7ba"
-#   if ifconfig en0 | grep inactive &> /dev/null; then
-#   color="%F{red}"
-#   else
-#   color="%F{blue}"
-#   fi
-#   echo -n "%{$color%}$symbol "
-# }
-
-# POWERLEVEL9K_PROMPT_ON_NEWLINE=true
-# POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
-# POWERLEVEL9K_RPROMPT_ON_NEWLINE=true
-# POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
-# POWERLEVEL9K_SHORTEN_STRATEGY="truncate_beginning"
-# POWERLEVEL9K_RVM_BACKGROUND="black"
-# POWERLEVEL9K_RVM_FOREGROUND="249"
-# POWERLEVEL9K_RVM_VISUAL_IDENTIFIER_COLOR="red"
-# POWERLEVEL9K_TIME_BACKGROUND="black"
-# POWERLEVEL9K_TIME_FOREGROUND="249"
-# POWERLEVEL9K_TIME_FORMAT="\UF43A %D{%I:%M  \UF133  %m.%d.%y}"
-# POWERLEVEL9K_RVM_BACKGROUND="black"
-# POWERLEVEL9K_RVM_FOREGROUND="249"
-# POWERLEVEL9K_RVM_VISUAL_IDENTIFIER_COLOR="red"
-# POWERLEVEL9K_STATUS_VERBOSE=false
-# POWERLEVEL9K_VCS_CLEAN_FOREGROUND='black'
-# POWERLEVEL9K_VCS_CLEAN_BACKGROUND='green'
-# POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='black'
-# POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='yellow'
-# POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='white'
-# POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='black'
-# POWERLEVEL9K_COMMAND_EXECUTION_TIME_BACKGROUND='black'
-# POWERLEVEL9K_COMMAND_EXECUTION_TIME_FOREGROUND='blue'
-# POWERLEVEL9K_FOLDER_ICON=''
-# POWERLEVEL9K_STATUS_OK_IN_NON_VERBOSE=true
-# POWERLEVEL9K_STATUS_VERBOSE=false
-# POWERLEVEL9K_COMMAND_EXECUTION_TIME_THRESHOLD=0
-# POWERLEVEL9K_VCS_UNTRACKED_ICON='\u25CF'
-# POWERLEVEL9K_VCS_UNSTAGED_ICON='\u00b1'
-# POWERLEVEL9K_VCS_INCOMING_CHANGES_ICON='\u2193'
-# POWERLEVEL9K_VCS_OUTGOING_CHANGES_ICON='\u2191'
-# POWERLEVEL9K_VCS_COMMIT_ICON="\uf417"
-# POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX="%F{blue}\u256D\u2500%f"
-# POWERLEVEL9K_MULTILINE_LAST_PROMPT_PREFIX="%F{blue}\u2570\uf460%f "
-# POWERLEVEL9K_CUSTOM_BATTERY_STATUS="prompt_zsh_battery_level"
-# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context os_icon custom_internet_signal custom_battery_status_joined ssh root_indicator dir dir_writable vcs)
-# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time  status  time)
-# HIST_STAMPS="mm/dd/yyyy"
-# DISABLE_UPDATE_PROMPT=true
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context os_icon custom_wifi_signal custom_battery_status_joined custom_airpods_battery custom_trackpad_battery_joined ssh root_indicator dir dir_writable vcs)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time  status  time)
+DISABLE_UPDATE_PROMPT=true
 
 ENABLE_CORRECTION="false"
 HIST_STAMPS="mm/dd/yyyy"
@@ -217,35 +192,6 @@ bindkey '\e[B' history-beginning-search-forward
 
 export CLICOLOR=1
 export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# ssh
-# export SSH_KEY_PATH="~/.ssh/rsa_id"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # Environment Settings
 # ------------------------------------------------------
@@ -263,6 +209,13 @@ alias bshr=". ~/.bash_profile"                  # re-source .bash_profile
 alias zshr=". ~/.zshrc"                         # re-source .zshrc
 
 alias ssh="sshrc"                               # sshrc copies over local bash_profile
+function ssha () {                              # ssh to aws instance
+    ssh -i ~/.ssh/brad-aws.pem ec2-user@"$1"
+}
+function sshr () {                              # ssh to ravello instance
+    ssh -i ~/.ssh/brad44.pem ravello@"$1"     
+}
+
 alias cpy="pbcopy"                              # pbcopy takes too long to type
 
 alias cp="cp -iv"
@@ -279,6 +232,8 @@ alias ll="colorls -l"                           # long
 alias ld="colorls -d"                           # directories
 alias lf="colorls -f"                           # files
 alias la="colorls -al"                          # everything
+alias laf="colorls -afl"                        # long fils
+alias lad="colorls -lad"                        # long directories
 alias lt="colorls --tree"                       # tree
 alias lg="colorls --gs"                         # git status
 alias lgt="colorls --tree --gs"                 # git tree status
@@ -308,7 +263,9 @@ function psgk () {                              # kill process
 alias hg="history | grep $1"                    # grep history for query
 alias mac="sudo spoof-mac.py randomize wi-fi"   # randomize Mac address - https://github.com/feross/SpoofMAC
 
-alias zipf="zip -r "$1".zip "$1""               # to create a ZIP archive of a folder
+function zipf () {                              # create a ZIP archive of a folder
+    zip -r $1 $1
+}
 function extract () {                           # extract most know archives with one command
     if [ -f $1 ] ; then
       case $1 in
@@ -351,12 +308,31 @@ EOT
 # ------------------------------------------------------
 alias reddit="rtv --enable-media -s askreddit"                                              # open reddit - https://github.com/michael-lazar/rtv
 alias sp="spotify play $1"                                                                  # play song
+
 function ap () {                                                                            # connect AirPods
     osascript \
     -e 'tell application "System Events" to tell process "SystemUIServer"
         set bt to (first menu bar item whose description is "bluetooth") of menu bar 1
         click bt
-        tell (first menu item whose title is "Brad’s AirPods") of menu of bt
+        tell (first menu item whose title is "Brad'\''s AirPods") of menu of bt
+            click
+            tell menu 1
+                if exists menu item "Connect" then
+                    click menu item "Connect"
+                else
+                    click bt
+                end if
+            end tell
+        end tell
+    end tell'
+}
+
+function tp () {                                                                            # connect TrackPad 
+    osascript \
+    -e 'tell application "System Events" to tell process "SystemUIServer"
+        set bt to (first menu bar item whose description is "bluetooth") of menu bar 1
+        click bt
+        tell (first menu item whose title is "Brad'\''s Magic Trackpad 2") of menu of bt
             click
             tell menu 1
                 if exists menu item "Connect" then
@@ -370,6 +346,7 @@ function ap () {                                                                
 }
 
 alias chrome='/usr/bin/open -a "/Applications/Google Chrome.app" $1'                        # open file w/ chrome
+
 function google () {                                                                        # google query
     query=""
     for a in "$@"
